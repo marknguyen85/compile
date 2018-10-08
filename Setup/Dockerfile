@@ -4,7 +4,6 @@
 ############################################################
 
 FROM chug/ubuntu14.04x64 
-MAINTAINER ASAD MEMON, OSMAN ALI
 
 # Update the repository sources list
 RUN echo "deb http://archive.ubuntu.com/ubuntu trusty main universe" > /etc/apt/sources.list
@@ -20,7 +19,7 @@ RUN apt-get install -y mono-xsp2 mono-xsp2-base
 
 RUN apt-get install -y mono-vbnc
 RUN apt-get install -y npm
-RUN apt-get install -y golang-go	
+RUN apt-get install -y golang-go
 RUN apt-get install -y nodejs
 
 RUN npm config set strict-ssl false
@@ -56,6 +55,6 @@ RUN mkdir -p /opt/rust && \
 RUN apt-get install -y sudo
 RUN apt-get install -y bc
 
-# RUN echo "mysql ALL = NOPASSWD: /usr/sbin/service mysql start" | cat >> /etc/sudoers
+RUN echo "mysql ALL = NOPASSWD: /usr/sbin/service mysql start" | cat >> /etc/sudoers
 
 EXPOSE 8888
