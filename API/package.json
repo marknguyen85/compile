@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "main": "app.js",
   "dependencies": {
-    "express": "4.*",
     "body-parser": "*",
+    "exports": "*",
+    "express": "4.*",
     "express-brute": "*",
-    "exports": "*"
+    "mkdirp": "^0.5.1"
   },
   "author": "Osman Ali",
   "license": "MIT"

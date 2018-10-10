@@ -43,12 +43,12 @@ var DockerSandbox = function(timeout_value,path,folder,vm_name,compiler_name,fil
          * @description Function that first prepares the Docker environment and then executes the Docker sandbox 
          * @param {Function pointer} success ?????
 */
-DockerSandbox.prototype.run = function(success) 
+DockerSandbox.prototype.run = function(success, node_path) 
 {
     var sandbox = this;
 
     this.prepare( function(){
-        sandbox.execute(success);
+        sandbox.execute(success, node_path);
     });
 }
 
@@ -67,44 +67,78 @@ DockerSandbox.prototype.run = function(success)
 DockerSandbox.prototype.prepare = function(success)
 {
     var exec = require('child_process').exec;
+    var mkdirp = require('mkdirp');
     var fs = require('fs');
     var sandbox = this;
 
-    exec("mkdir "+ this.path+this.folder + " && cp "+this.path+"/Payload/* "+this.path+this.folder+"&& chmod 777 "+ this.path+this.folder,function(st)
-        {
-            fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code,function(err) 
-            {
-                if (err) 
+    mkdirp(this.path+this.folder, function (mkdir) {
+        exec("cp "+this.path+"/Payload/* "+this.path+this.folder, function(cp){
+            exec("chmod 777 "+ this.path+this.folder, function(chmod){
+                fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code,function(err) 
                 {
-                    console.log(err);
-                }    
-                else
-                {
-                    console.log(sandbox.langName+" file was saved!");
-                    exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'")
-
-                    fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data,function(err) 
+                    if (err) 
                     {
-                        if (err) 
+                        console.log(err);
+                    }    
+                    else
+                    {
+                        console.log(sandbox.langName+" file was saved!");
+                        exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'")
+
+                        fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data,function(err) 
                         {
-                            console.log(err);
-                        }    
-                        else
-                        {
-                            console.log("Input file was saved!");
-                            success();
-                        } 
-                    });
+                            if (err) 
+                            {
+                                console.log(err);
+                            }    
+                            else
+                            {
+                                console.log("Input file was saved!");
+                                success();
+                            } 
+                        });
+                    } 
+                });
+            })
+        })
+    });
 
-                    
-                } 
-            });
+    // exec("mkdir "+ this.path+this.folder, function(mkdir) {
+    //     console.log('=====================mkdir', mkdir);
+    //     exec("cp "+this.path+"/Payload/* "+this.path+this.folder, function(cp){
+    //         console.log('=====================cp', cp);
+    //         exec("chmod 777 "+ this.path+this.folder, function(chmod){
+    //             console.log('=====================chmod', chmod);
+    //             fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code,function(err) 
+    //             {
+    //                 if (err) 
+    //                 {
+    //                     console.log(err);
+    //                 }    
+    //                 else
+    //                 {
+    //                     console.log(sandbox.langName+" file was saved!");
+    //                     exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'")
 
+    //                     fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data,function(err) 
+    //                     {
+    //                         if (err) 
+    //                         {
+    //                             console.log(err);
+    //                         }    
+    //                         else
+    //                         {
+    //                             console.log("Input file was saved!");
+    //                             success();
+    //                         } 
+    //                     });
 
-
-            
-        });
-
+                        
+    //                 } 
+    //             });
+    //         })
+    //     })
+    // });
 }
 
 /*
@@ -123,18 +157,18 @@ DockerSandbox.prototype.prepare = function(success)
          * @param {Function pointer} success ?????
 */
 
-DockerSandbox.prototype.execute = function(success)
+DockerSandbox.prototype.execute = function(success, node_path)
 {
     var exec = require('child_process').exec;
     var fs = require('fs');
     var myC = 0; //variable to enforce the timeout_value
     var sandbox = this;
-
+    var node_path = node_path || "/usr/local/lib/node_modules";
     //this statement is what is executed
-    var st = this.path+'DockerTimeout.sh ' + this.timeout_value + 's -u mysql -e \'NODE_PATH=/usr/local/lib/node_modules\' -i -t -v  "' + this.path + this.folder + '":/usercode ' + this.vm_name + ' /usercode/script.sh ' + this.compiler_name + ' ' + this.file_name + ' ' + this.output_command+ ' ' + this.extra_arguments;
+    var st = this.path+'DockerTimeout.sh ' + this.timeout_value + 's -u mysql -e \'NODE_PATH='+ node_path + '\' -i -t -v  "' + this.path + this.folder + '":/usercode ' + this.vm_name + ' /usercode/script.sh ' + this.compiler_name + ' ' + this.file_name + ' ' + this.output_command+ ' ' + this.extra_arguments;
     
     //log the statement in console
-    console.log(st);
+    console.log('============================', st);
 
     //execute the Docker, This is done ASYNCHRONOUSLY
     exec(st);
