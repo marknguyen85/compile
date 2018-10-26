@@ -20,7 +20,9 @@
          * @param {String} code: The actual code
          * @param {String} output_command: Used in case of compilers only, to execute the object code, send " " in case of interpretors
 */
-var DockerSandbox = function(timeout_value,path,folder,vm_name,compiler_name,file_name,code,output_command,languageName,e_arguments,stdin_data)
+var DockerSandbox = function(timeout_value, path, folder, vm_name
+        , compiler_name, file_name, output_command, languageName, e_arguments
+        , stdin_data, code, codefile, root_path_code_user)
 {
 
     this.timeout_value=timeout_value;
@@ -30,10 +32,12 @@ var DockerSandbox = function(timeout_value,path,folder,vm_name,compiler_name,fil
     this.compiler_name=compiler_name;
     this.file_name=file_name;
     this.code = code;
+    this.codefile = codefile;
     this.output_command=output_command;
     this.langName=languageName;
     this.extra_arguments=e_arguments;
     this.stdin_data=stdin_data;
+    this.root_path_code_user = root_path_code_user;
 }
 
 
@@ -67,14 +71,41 @@ DockerSandbox.prototype.run = function(success, node_path)
 DockerSandbox.prototype.prepare = function(success)
 {
     var exec = require('child_process').exec;
-    var mkdirp = require('mkdirp');
     var fs = require('fs');
     var sandbox = this;
 
-    mkdirp(this.path+this.folder, function (mkdir) {
-        exec("cp "+this.path+"/Payload/* "+this.path+this.folder, function(cp){
-            exec("chmod 777 "+ this.path+this.folder, function(chmod){
-                fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code,function(err) 
+    exec("mkdir "+ this.path+this.folder + " && cp "+this.path+"/Payload/* "+this.path+this.folder+"&& chmod 777 "+ this.path+this.folder, function(st)
+        {
+            if (sandbox.codefile) {
+                // copy file code to folder to run build
+                exec("cp -a \'" + sandbox.root_path_code_user + sandbox.codefile + "\' \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'", function(err) {
+                    if (err) 
+                    {
+                        console.log('===========================Copy code to build folder', err);
+                    }    
+                    else
+                    {
+                        console.log(sandbox.langName + " file was copied!");
+                        // chmod 777 for code file
+                        exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'");
+            
+                        fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data, function(err) 
+                        {
+                            if (err) 
+                            {
+                                console.log(err);
+                            }    
+                            else
+                            {
+                                console.log("Input file was saved!");
+                                success();
+                            } 
+                        });
+                    }
+                });
+            }
+            else {
+                fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code, function(err) 
                 {
                     if (err) 
                     {
@@ -84,7 +115,7 @@ DockerSandbox.prototype.prepare = function(success)
                     {
                         console.log(sandbox.langName+" file was saved!");
                         exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'")
-
+    
                         fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data,function(err) 
                         {
                             if (err) 
@@ -99,46 +130,9 @@ DockerSandbox.prototype.prepare = function(success)
                         });
                     } 
                 });
-            })
-        })
-    });
+            }
+        });
 
-    // exec("mkdir "+ this.path+this.folder, function(mkdir) {
-    //     console.log('=====================mkdir', mkdir);
-    //     exec("cp "+this.path+"/Payload/* "+this.path+this.folder, function(cp){
-    //         console.log('=====================cp', cp);
-    //         exec("chmod 777 "+ this.path+this.folder, function(chmod){
-    //             console.log('=====================chmod', chmod);
-    //             fs.writeFile(sandbox.path + sandbox.folder+"/" + sandbox.file_name, sandbox.code,function(err) 
-    //             {
-    //                 if (err) 
-    //                 {
-    //                     console.log(err);
-    //                 }    
-    //                 else
-    //                 {
-    //                     console.log(sandbox.langName+" file was saved!");
-    //                     exec("chmod 777 \'"+sandbox.path+sandbox.folder+"/"+sandbox.file_name+"\'")
-
-    //                     fs.writeFile(sandbox.path + sandbox.folder+"/inputFile", sandbox.stdin_data,function(err) 
-    //                     {
-    //                         if (err) 
-    //                         {
-    //                             console.log(err);
-    //                         }    
-    //                         else
-    //                         {
-    //                             console.log("Input file was saved!");
-    //                             success();
-    //                         } 
-    //                     });
-
-                        
-    //                 } 
-    //             });
-    //         })
-    //     })
-    // });
 }
 
 /*
@@ -163,12 +157,12 @@ DockerSandbox.prototype.execute = function(success, node_path)
     var fs = require('fs');
     var myC = 0; //variable to enforce the timeout_value
     var sandbox = this;
-    var node_path = node_path || "/usr/local/lib/node_modules";
+    node_path = node_path || '/usr/local/lib/node_modules';
     //this statement is what is executed
-    var st = this.path+'DockerTimeout.sh ' + this.timeout_value + 's -u mysql -e \'NODE_PATH='+ node_path + '\' -i -t -v  "' + this.path + this.folder + '":/usercode ' + this.vm_name + ' /usercode/script.sh ' + this.compiler_name + ' ' + this.file_name + ' ' + this.output_command+ ' ' + this.extra_arguments;
+    var st = this.path+'DockerTimeout.sh ' + this.timeout_value + 's -u mysql -e \'NODE_PATH=' + node_path + '\' -i -t -v  "' + this.path + this.folder + '":/usercode ' + this.vm_name + ' /usercode/script.sh ' + this.compiler_name + ' ' + this.file_name + ' ' + this.output_command+ ' ' + this.extra_arguments;
     
     //log the statement in console
-    console.log('============================', st);
+    console.log(st);
 
     //execute the Docker, This is done ASYNCHRONOUSLY
     exec(st);
@@ -178,7 +172,7 @@ DockerSandbox.prototype.execute = function(success, node_path)
         {
             //Displaying the checking message after 1 second interval, testing purposes only
             //console.log("Checking " + sandbox.path+sandbox.folder + ": for completion: " + myC);
-
+            console.log('==================retry read result', myC);
             myC = myC + 1;
 			
             fs.readFile(sandbox.path + sandbox.folder + '/completed', 'utf8', function(err, data) {
@@ -203,13 +197,12 @@ DockerSandbox.prototype.execute = function(success, node_path)
                		console.log("Main File")
                		console.log(data)
 
-			var lines = data.toString().split('*-COMPILEBOX::ENDOFOUTPUT-*')
-			data=lines[0]
-			var time=lines[1]
+                    var lines = data.toString().split('*-COMPILEBOX::ENDOFOUTPUT-*')
+                    data=lines[0]
+                    var time=lines[1]
 
-			console.log("Time: ")
-			console.log(time)
-
+                    console.log("Time: ")
+                    console.log(time)
 
        	           	success(data,time,data2)
                 });
@@ -220,26 +213,40 @@ DockerSandbox.prototype.execute = function(success, node_path)
             //if time is up. Save an error message to the data variable
             else 
             {
-            	//Since the time is up, we take the partial output and return it.
-            	fs.readFile(sandbox.path + sandbox.folder + '/logfile.txt', 'utf8', function(err, data){
-            		if (!data) data = "";
-                    data += "\nExecution Timed Out";
-                    console.log("Timed Out: "+sandbox.folder+" "+sandbox.langName)
-                    fs.readFile(sandbox.path + sandbox.folder + '/errors', 'utf8', function(err2, data2) 
-	                {
-	                	if(!data2) data2=""
-
-				var lines = data.toString().split('*---*')
-				data=lines[0]
-				var time=lines[1]
-
-				console.log("Time: ")
-				console.log(time)
-
-	                   	success(data,data2)
-	                });
-            	});
+                console.log("Timed Out: "+sandbox.folder+" "+sandbox.langName);
+                var isGetDataWhenExceed = false;
                 
+                if (!isGetDataWhenExceed) {
+                    // return error timeout when exceed 
+                    success("Execution Timed Out", sandbox.timeout_value , "Compile time is greater " + sandbox.timeout_value + 's');
+                }
+                else {
+                    //Since the time is up, we take the partial output and return it.
+                    fs.readFile(sandbox.path + sandbox.folder + '/logfile.txt', 'utf8', function(err, data){
+                        console.log('=================data here', data);
+                        if (!data) {
+                            data = "";
+                        }
+
+                        data += "\nExecution Timed Out";
+                        
+                        fs.readFile(sandbox.path + sandbox.folder + '/errors', 'utf8', function(err2, data2) 
+                        {
+                            if(!data2) {
+                                data2 = "";
+                            }
+
+                            var lines = data.toString().split('*---*');
+                            data = lines[0];
+                            var time = lines[1];
+
+                            console.log("Time: ");
+                            console.log(time);
+
+                            success(data, time, data2);
+                        });
+                    });
+                }
             }
 
 

@@ -1,24 +1,22 @@
 
 var LANGS = {
-    "C#": [10, "text/x-csharp"],
-    "C/C++": [7, "text/x-c++src"],
-    "Clojure": [2, "text/x-clojure"],
-    "Java": [8, "text/x-java"],
+    "PHP": [1, "text/x-php"],
+    "Java": [2, "text/x-java"],
+    "C#": [3, "text/x-csharp"],
+    "C/C++": [4, "text/x-c++src"],
+    "Clojure": [5, "text/x-clojure"],
     "Go": [6, "text/x-go"],
-    "Plain JavaScript": [4, "text/javascript"],
-    "PHP": [3, "text/x-php"],
-    "Python": [0, "text/x-python"],
-    "Ruby": [1, "text/x-ruby"],
-    "Scala": [5, "text/x-scala"],
-    "VB.NET": [9, "text/x-vb"],
-    "Bash": [11, "text/x-bash"],
-    "Objective-C": [12,"text/x-objectivec"],
-    "MySQL": [13,"text/x-sql"],
-    "Perl": [14, "text/x-perl"],
-    "Rust": [15, "text/rust"],
+    "Plain JavaScript": [7, "text/javascript"],
+    "Python": [8, "text/x-python"],
+    "Ruby": [9, "text/x-ruby"],
+    "Scala": [10, "text/x-scala"],
+    "VB.NET": [11, "text/x-vb"],
+    "Bash": [12, "text/x-bash"],
+    "Objective-C": [13,"text/x-objectivec"],
+    "MySQL": [14,"text/x-sql"],
+    "Perl": [15, "text/x-perl"],
+    "Rust": [16, "text/rust"],
 }
-
-
 
 var Codes = {
     "Perl" : "use strict;\nuse warnings\n;use v5.14; say 'Hello';",
