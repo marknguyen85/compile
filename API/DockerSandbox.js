@@ -151,12 +151,26 @@ DockerSandbox.prototype.prepare = function(success)
          * @param {Function pointer} success ?????
 */
 
+DockerSandbox.prototype.replaceFriendly = function(data) {
+    if (data == "") {
+        return data;
+    }
+    // console.log('=================Output before====', data);
+    var regex = /(in+\s)\/usercode\/file\.([a-zA-Z]*)/gi;
+    var friendly = data.replace(regex, '');
+    // console.log('=================Output after====', friendly);
+    return friendly;
+}
+
 DockerSandbox.prototype.execute = function(success, node_path)
 {
     var exec = require('child_process').exec;
     var fs = require('fs');
     var myC = 0; //variable to enforce the timeout_value
+    var timeTick = 1000/1;// = 50ms ~ 0.05s
+    var timeMax = this.timeout_value * 1000;
     var sandbox = this;
+    
     node_path = node_path || '/usr/local/lib/node_modules';
     //this statement is what is executed
     var st = this.path+'DockerTimeout.sh ' + this.timeout_value + 's -u mysql -e \'NODE_PATH=' + node_path + '\' -i -t -v  "' + this.path + this.folder + '":/usercode ' + this.vm_name + ' /usercode/script.sh ' + this.compiler_name + ' ' + this.file_name + ' ' + this.output_command+ ' ' + this.extra_arguments;
@@ -165,7 +179,10 @@ DockerSandbox.prototype.execute = function(success, node_path)
     console.log(st);
 
     //execute the Docker, This is done ASYNCHRONOUSLY
-    exec(st);
+    exec(st, function(err, data){
+        console.log("================Docker run finished=======", err);
+    });
+    
     console.log("------------------------------")
     //Check For File named "completed" after every 1 second
     var intid = setInterval(function() 
@@ -173,38 +190,48 @@ DockerSandbox.prototype.execute = function(success, node_path)
             //Displaying the checking message after 1 second interval, testing purposes only
             //console.log("Checking " + sandbox.path+sandbox.folder + ": for completion: " + myC);
             console.log('==================retry read result', myC);
-            myC = myC + 1;
+            myC = myC + timeTick;
 			
             fs.readFile(sandbox.path + sandbox.folder + '/completed', 'utf8', function(err, data) {
             
             //if file is not available yet and the file interval is not yet up carry on
-            if (err && myC < sandbox.timeout_value) 
+            if (err && myC < timeMax) 
             {
                 //console.log(err);
                 return;
             } 
             //if file is found simply display a message and proceed
-            else if (myC < sandbox.timeout_value) 
+            else if (myC < timeMax) 
             {
                 console.log("DONE")
                 //check for possible errors
                 fs.readFile(sandbox.path + sandbox.folder + '/errors', 'utf8', function(err2, data2) 
                 {
-                	if(!data2) data2=""
+                	if(!data2) {
+                        data2 = "";
+                    }
+                    else {
+                        data2 = sandbox.replaceFriendly(data2);
+                    }
+
                		console.log("Error file: ")
-               		console.log(data2)
+               		console.log(data2);
 
                		console.log("Main File")
-               		console.log(data)
+               		console.log(data);
 
-                    var lines = data.toString().split('*-COMPILEBOX::ENDOFOUTPUT-*')
-                    data=lines[0]
-                    var time=lines[1]
+                    var lines = data.toString().split('*-COMPILEBOX::ENDOFOUTPUT-*');
+                    data = lines[0];
+                    
+                    var time = lines[1].replace(' ', '');
+                    if (time.indexOf('.') == 0) {
+                        time = '0' + time;
+                    }
 
-                    console.log("Time: ")
-                    console.log(time)
+                    console.log("Time: ");
+                    console.log(time);
 
-       	           	success(data,time,data2)
+       	           	success(data, time, data2);
                 });
 
                 //return the data to the calling functoin
@@ -235,13 +262,21 @@ DockerSandbox.prototype.execute = function(success, node_path)
                             if(!data2) {
                                 data2 = "";
                             }
+                            else {
+                                data2 = sandbox.replaceFriendly(data2);
+                            }
 
                             var lines = data.toString().split('*---*');
                             data = lines[0];
-                            var time = lines[1];
+
+                            var time = lines[1].replace(' ', '');
+                            if (time.indexOf('.') == 0) {
+                                time = '0' + time;
+                            }
 
                             console.log("Time: ");
                             console.log(time);
+
 
                             success(data, time, data2);
                         });
@@ -249,16 +284,16 @@ DockerSandbox.prototype.execute = function(success, node_path)
                 }
             }
 
-
             //now remove the temporary directory
-            console.log("ATTEMPTING TO REMOVE: " + sandbox.folder);
-            console.log("------------------------------")
-            exec("rm -r " + sandbox.folder);
+            exec("rm -r " + sandbox.folder, function(err){
+                console.log("ATTEMPTING TO REMOVE: " + sandbox.folder);
+                console.log("------------------------------");
+            });
 
             
             clearInterval(intid);
         });
-    }, 1000);
+    }, timeTick);
 
 }
 

@@ -28,7 +28,7 @@ var bruteforce = new ExpressBrute(store,{
 var vm_name='virtual_machine'; //name of virtual machine that we want to execute
 var timeout_value=20;//Timeout Value, In Seconds
 var windows = 0;
-var root_path_code_user = '/var/www/hrbiz/storage/app/';
+var root_path_code_user = '';
 var node_path = "/usr/local/lib/node_modules";
 
 app.use(express.static(__dirname));
@@ -154,7 +154,8 @@ app.post('/compilecode',bruteforce.prevent,function(req, res)
     	res.send({
             output: data, 
             langid: language, 
-            code: codefile, 
+            code: '', 
+            input: stdin,
             errors: err, 
             time: exec_time
         });
@@ -168,11 +169,17 @@ app.post('/compilecodes',bruteforce.prevent,function(req, res)
     var codefile = req.body.codefile;
     var stdinArr = JSON.parse(req.body.stdin);
 
+    // return res.send({
+    //     stdin: stdinArr,
+    //     type: typeof stdinArr
+    // });
+
     if (!arr.compilerArray[language]) {
         res.send({
             output: '', 
             langid: language, 
-            code: codefile, 
+            code: '', 
+            input: stdinArr, 
             errors: 'Language invalid', 
             time: 0});
         return;
@@ -182,7 +189,8 @@ app.post('/compilecodes',bruteforce.prevent,function(req, res)
         res.send({
             output: '', 
             langid: language, 
-            code: codefile, 
+            code: '', 
+            input: stdinArr, 
             errors: 'Codefile is required', 
             time: 0});
         return;
@@ -193,6 +201,7 @@ app.post('/compilecodes',bruteforce.prevent,function(req, res)
             output: '', 
             langid: language, 
             code: '', 
+            input: stdinArr, 
             errors: 'Input data must be array', 
             time: 0});
         return;
@@ -239,7 +248,8 @@ function runDockers(response,
         jsonData.push({
             output: data, 
             langid: language, 
-            code: stdin, 
+            code: '',
+            input: stdin, 
             errors: err, 
             time:exec_time
         });
